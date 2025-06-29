@@ -190,6 +190,212 @@ function importFromJsonFile(event) {
 
     fileReader.readAsText(file);
 }
+// Initial quotes array
+let quotes = [];
+let lastSyncTime = null;
+const syncInterval = 30000; // Sync every 30 seconds
+let syncTimeout;
 
+// DOM elements
+const quoteDisplay = document.getElementById('quoteDisplay');
+const newQuoteBtn = document.getElementById('newQuote');
+const categoryFilter = document.getElementById('categoryFilter');
+const exportBtn = document.getElementById('exportBtn');
+const importFileInput = document.getElementById('importFile');
+const syncStatus = document.getElementById('syncStatus');
+const conflictResolutionModal = document.getElementById('conflictResolutionModal');
+const conflictList = document.getElementById('conflictList');
+const acceptServerChangesBtn = document.getElementById('acceptServerChanges');
+const keepLocalChangesBtn = document.getElementById('keepLocalChanges');
+
+// Initialize the application
+function init() {
+    createAddQuoteForm();
+    loadQuotes();
+    populateCategories();
+    restoreLastFilter();
+    showRandomQuote();
+    setupEventListeners();
+    startSyncTimer();
+}
+
+function setupEventListeners() {
+    newQuoteBtn.addEventListener('click', showRandomQuote);
+    exportBtn.addEventListener('click', exportToJson);
+    importFileInput.addEventListener('change', importFromJsonFile);
+    categoryFilter.addEventListener('change', filterQuotes);
+    acceptServerChangesBtn.addEventListener('click', () => resolveConflicts(true));
+    keepLocalChangesBtn.addEventListener('click', () => resolveConflicts(false));
+}
+
+// Server simulation functions
+async function fetchFromServer() {
+    try {
+        // Simulate API call with random delay
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 1000));
+
+        // Get server data from localStorage (simulating server storage)
+        const serverData = localStorage.getItem('serverQuotes') || '[]';
+        return JSON.parse(serverData);
+    } catch (error) {
+        console.error('Error fetching from server:', error);
+        return [];
+    }
+}
+
+async function postToServer(quotesToSend) {
+    try {
+        // Simulate API call with random delay
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 1000));
+
+        // Save to localStorage (simulating server storage)
+        localStorage.setItem('serverQuotes', JSON.stringify(quotesToSend));
+        return true;
+    } catch (error) {
+        console.error('Error posting to server:', error);
+        return false;
+    }
+}
+
+// Sync functions
+async function syncWithServer() {
+    updateSyncStatus('Syncing...');
+
+    try {
+        const serverQuotes = await fetchFromServer();
+        const conflicts = findConflicts(quotes, serverQuotes);
+
+        if (conflicts.length > 0) {
+            showConflictResolution(conflicts, serverQuotes);
+        } else {
+            // No conflicts, merge changes
+            const mergedQuotes = mergeQuotes(quotes, serverQuotes);
+            quotes = mergedQuotes;
+            saveQuotes();
+            updateSyncStatus('Synced at ' + new Date().toLocaleTimeString());
+        }
+
+        // Post our local changes to server
+        await postToServer(quotes);
+        lastSyncTime = new Date();
+    } catch (error) {
+        console.error('Sync failed:', error);
+        updateSyncStatus('Sync failed');
+    }
+
+    startSyncTimer();
+}
+
+function findConflicts(localQuotes, serverQuotes) {
+    // Simple conflict detection - quotes with same text but different categories
+    return localQuotes.filter(localQuote => {
+        const serverQuote = serverQuotes.find(sq => sq.text === localQuote.text);
+        return serverQuote && serverQuote.category !== localQuote.category;
+    });
+}
+
+function mergeQuotes(localQuotes, serverQuotes) {
+    // Merge strategy: prefer server version for conflicts
+    const localTexts = localQuotes.map(q => q.text);
+    const serverOnly = serverQuotes.filter(q => !localTexts.includes(q.text));
+    return [...localQuotes, ...serverOnly];
+}
+
+// Conflict resolution
+function showConflictResolution(conflicts, serverQuotes) {
+    conflictList.innerHTML = conflicts.map(conflict => {
+        const serverVersion = serverQuotes.find(q => q.text === conflict.text);
+        return `
+            <div class="conflict-item">
+                <p><strong>Quote:</strong> "${conflict.text}"</p>
+                <p><strong>Local category:</strong> ${conflict.category}</p>
+                <p><strong>Server category:</strong> ${serverVersion.category}</p>
+            </div>
+        `;
+    }).join('');
+
+    conflictResolutionModal.style.display = 'block';
+}
+
+function resolveConflicts(acceptServerChanges) {
+    const serverQuotes = JSON.parse(localStorage.getItem('serverQuotes') || []);
+
+    if (acceptServerChanges) {
+        // Accept server changes for conflicts
+        quotes = mergeQuotes(quotes, serverQuotes);
+    } else {
+        // Keep local changes - post them to server
+        postToServer(quotes);
+    }
+
+    saveQuotes();
+    populateCategories();
+    conflictResolutionModal.style.display = 'none';
+    updateSyncStatus('Synced at ' + new Date().toLocaleTimeString());
+}
+
+// UI functions
+function updateSyncStatus(message) {
+    if (syncStatus) {
+        syncStatus.textContent = message;
+    }
+}
+
+function startSyncTimer() {
+    clearTimeout(syncTimeout);
+    syncTimeout = setTimeout(() => syncWithServer(), syncInterval);
+}
+
+// Existing functions (updated as needed)
+function createAddQuoteForm() {
+    const formContainer = document.createElement('div');
+    formContainer.className = 'add-quote-form';
+    formContainer.innerHTML = `
+        <h3>Add a New Quote</h3>
+        <input id="newQuoteText" type="text" placeholder="Enter a new quote" required>
+        <input id="newQuoteCategory" type="text" placeholder="Enter quote category" required>
+        <button id="addQuoteBtn">Add Quote</button>
+        <div id="syncStatus">Not synced yet</div>
+    `;
+    document.body.appendChild(formContainer);
+    document.getElementById('addQuoteBtn').addEventListener('click', addQuote);
+}
+
+function addQuote() {
+    const text = document.getElementById('newQuoteText').value.trim();
+    const category = document.getElementById('newQuoteCategory').value.trim();
+
+    if (!text || !category) {
+        alert('Please enter both a quote and a category');
+        return;
+    }
+
+    const newQuote = { text, category };
+    quotes.push(newQuote);
+    saveQuotes();
+
+    // Update categories if new category was added
+    const categories = [...new Set(quotes.map(q => q.category))];
+    if (!categories.includes(category)) {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        categoryFilter.appendChild(option);
+    }
+
+    document.getElementById('newQuoteText').value = '';
+    document.getElementById('newQuoteCategory').value = '';
+
+    // Show the new quote if its category is selected
+    if (categoryFilter.value === 'all' || categoryFilter.value === category) {
+        displayQuote(newQuote);
+    }
+
+    // Trigger sync after local change
+    syncWithServer();
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', init);
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', init);
