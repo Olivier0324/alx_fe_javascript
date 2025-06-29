@@ -55,6 +55,13 @@
             width: 100%;
             box-sizing: border-box;
         }
+
+        .import-export {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+        }
     </style>
 </head>
 
@@ -79,6 +86,15 @@
         <input id="newQuoteText" type="text" placeholder="Enter a new quote" required>
         <input id="newQuoteCategory" type="text" placeholder="Enter quote category" required>
         <button onclick="addQuote()">Add Quote</button>
+    </div>
+
+    <div class="import-export">
+        <h3>Import/Export Quotes</h3>
+        <button id="exportBtn">Export Quotes to JSON</button>
+        <div style="margin-top: 10px;">
+            <label for="importFile">Import Quotes from JSON:</label>
+            <input type="file" id="importFile" accept=".json" onchange="importFromJsonFile(event)" />
+        </div>
     </div>
 
     <script src="script.js"></script>
