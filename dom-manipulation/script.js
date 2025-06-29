@@ -1,4 +1,4 @@
-// Initial quotes array
+// Initial quotes array with text and category properties
 let quotes = [
     { text: "The only way to do great work is to love what you do.", category: "work" },
     { text: "Life is what happens when you're busy making other plans.", category: "life" },
@@ -25,9 +25,12 @@ function init() {
     // Event listeners
     newQuoteBtn.addEventListener('click', showRandomQuote);
     categorySelect.addEventListener('change', showRandomQuote);
+
+    // Create the add quote form (though it's already in HTML)
+    createAddQuoteForm();
 }
 
-// Show a random quote
+// Function to show a random quote
 function showRandomQuote() {
     const selectedCategory = categorySelect.value;
     let filteredQuotes = quotes;
@@ -50,24 +53,14 @@ function showRandomQuote() {
     `;
 }
 
-// Update the category filter dropdown
-function updateCategoryFilter() {
-    // Get all unique categories
-    const categories = ['all', ...new Set(quotes.map(quote => quote.category))];
-
-    // Clear existing options
-    categorySelect.innerHTML = '';
-
-    // Add new options
-    categories.forEach(category => {
-        const option = document.createElement('option');
-        option.value = category;
-        option.textContent = category.charAt(0).toUpperCase() + category.slice(1);
-        categorySelect.appendChild(option);
-    });
+// Function to create the add quote form (though it's already in HTML)
+function createAddQuoteForm() {
+    // The form is already in the HTML, so we just need to ensure it's properly connected
+    // We could also create it dynamically here if needed
+    console.log("Add quote form is ready");
 }
 
-// Add a new quote
+// Function to add a new quote
 function addQuote() {
     const text = newQuoteText.value.trim();
     const category = newQuoteCategory.value.trim();
@@ -77,7 +70,7 @@ function addQuote() {
         return;
     }
 
-    // Add the new quote
+    // Add the new quote to the array
     quotes.push({ text, category });
 
     // Update the category filter
@@ -93,6 +86,23 @@ function addQuote() {
     // Show the new quote
     categorySelect.value = category;
     showRandomQuote();
+}
+
+// Update the category filter dropdown
+function updateCategoryFilter() {
+    // Get all unique categories
+    const categories = ['all', ...new Set(quotes.map(quote => quote.category))];
+
+    // Clear existing options
+    categorySelect.innerHTML = '';
+
+    // Add new options
+    categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+        categorySelect.appendChild(option);
+    });
 }
 
 // Initialize the app when the DOM is loaded
