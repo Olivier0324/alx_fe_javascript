@@ -6,6 +6,7 @@ const quoteDisplay = document.getElementById('quoteDisplay');
 const newQuoteBtn = document.getElementById('newQuote');
 const categorySelect = document.getElementById('categorySelect');
 const exportBtn = document.getElementById('exportBtn');
+const importFileInput = document.getElementById('importFile');
 
 // Initialize the application
 function init() {
@@ -21,6 +22,7 @@ function init() {
     // Event listeners
     newQuoteBtn.addEventListener('click', showRandomQuote);
     exportBtn.addEventListener('click', exportToJson);
+    importFileInput.addEventListener('change', importFromJsonFile);
 }
 
 // Function to create the add quote form
@@ -134,6 +136,33 @@ function exportToJson() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+
+// Import quotes from JSON file
+function importFromJsonFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const fileReader = new FileReader();
+
+    fileReader.onload = function (e) {
+        try {
+            const importedQuotes = JSON.parse(e.target.result);
+            if (!Array.isArray(importedQuotes)) {
+                throw new Error('Invalid format: Expected an array of quotes');
+            }
+
+            quotes = importedQuotes;
+            saveQuotes();
+            updateCategoryFilter();
+            showRandomQuote();
+            alert(`Successfully imported ${importedQuotes.length} quotes!`);
+        } catch (error) {
+            alert('Error importing quotes: ' + error.message);
+        }
+    };
+
+    fileReader.readAsText(file);
 }
 
 // Initialize when DOM is loaded
